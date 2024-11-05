@@ -30,7 +30,7 @@ const transaction = await createNft(umi,{
     mint:collectionMint,
     name:"My Collection",
     symbol:"MC",
-    uri:"https://...",
+    uri:"https://raw.githubusercontent.com/JinXingJX/slocamp24-jsonfiles/refs/heads/main/newnft.json",
     sellerFeeBasisPoints:percentAmount(0),
     isCollection:true
 })
