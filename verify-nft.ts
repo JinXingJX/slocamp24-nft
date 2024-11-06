@@ -1,8 +1,8 @@
-import { createNft, fetchDigitalAsset, mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
+import { createNft, fetchDigitalAsset, findMetadataPda, mplTokenMetadata, verifyCollection, verifyCollectionV1 } from "@metaplex-foundation/mpl-token-metadata";
 import { airdropIfRequired, getExplorerLink, getKeypairFromFile } from "@solana-developers/helpers";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { generateSigner, keypairIdentity, percentAmount } from "@metaplex-foundation/umi";
+import { generateSigner, keypairIdentity, percentAmount,publicKey } from "@metaplex-foundation/umi";
 
 // QuickNode endpoint
 const QUICKNODE_RPC = "https://attentive-frequent-waterfall.solana-devnet.quiknode.pro/d85a5fae3a7162b5a0146549859de0dec03181ce";
@@ -32,30 +32,19 @@ async function main() {
 
   console.log("set up umi instance for user");
 
-  const collectionMint = generateSigner(umi);
+  const collectionAddress = publicKey("33Jbo6xEeDRpXZNatJqWTuw33Dm6LQma6udA2dGqsbYE");
 
-  const transaction = await createNft(umi, {
-    mint: collectionMint,
-    name: "My Collection",
-    symbol: "MC",
-    uri: "https://raw.githubusercontent.com/JinXingJX/slocamp24-jsonfiles/refs/heads/main/newnft.json",
-    sellerFeeBasisPoints: percentAmount(0),
-    isCollection: true
+  const nftAddress = publicKey("BWQ81zr7AXtccwd9B1gggfcAWcXcxB7K75bBJ8NbXAaW"); 
+
+  const transaction = await verifyCollectionV1(umi,{
+    metadata:findMetadataPda(umi,{mint:nftAddress}),
+    collectionMint:collectionAddress,
+    authority: umi.identity,
   });
 
   await transaction.sendAndConfirm(umi);
 
-  const createdCollectionNft = await fetchDigitalAsset(umi, collectionMint.publicKey);
-  console.log(
-    `created collection! Address is ${getExplorerLink(
-      "address",
-      createdCollectionNft.mint.publicKey,
-      "devnet"
-    )}`
-  );
+  console.log(`NFT: ${nftAddress} verified, see it on Solana Explorer: ${getExplorerLink("address", nftAddress)}`);
 }
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+main();

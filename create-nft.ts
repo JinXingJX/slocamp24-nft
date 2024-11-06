@@ -1,8 +1,8 @@
 import { createNft, fetchDigitalAsset, mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
 import { airdropIfRequired, getExplorerLink, getKeypairFromFile } from "@solana-developers/helpers";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { generateSigner, keypairIdentity, percentAmount } from "@metaplex-foundation/umi";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { generateSigner, keypairIdentity, percentAmount, publicKey} from "@metaplex-foundation/umi";
 
 // QuickNode endpoint
 const QUICKNODE_RPC = "https://attentive-frequent-waterfall.solana-devnet.quiknode.pro/d85a5fae3a7162b5a0146549859de0dec03181ce";
@@ -32,30 +32,35 @@ async function main() {
 
   console.log("set up umi instance for user");
 
-  const collectionMint = generateSigner(umi);
+  const collectionAddress = publicKey("33Jbo6xEeDRpXZNatJqWTuw33Dm6LQma6udA2dGqsbYE");
 
-  const transaction = await createNft(umi, {
-    mint: collectionMint,
-    name: "My Collection",
-    symbol: "MC",
-    uri: "https://raw.githubusercontent.com/JinXingJX/slocamp24-jsonfiles/refs/heads/main/newnft.json",
+  console.log("creating nft...");
+
+  const mint = await generateSigner(umi);
+
+  const transaction = await createNft(umi,{
+    mint,
+    name:"my nft",
+    uri:'https://raw.githubusercontent.com/JinXingJX/slocamp24-jsonfiles/refs/heads/main/newnft.json',
     sellerFeeBasisPoints: percentAmount(0),
-    isCollection: true
+    collection: {
+        key: collectionAddress,
+        verified: false,
+    },
+    isMutable: true,
   });
 
-  await transaction.sendAndConfirm(umi);
+  const result = await transaction.sendAndConfirm(umi);
+  
+  console.log(`NFT mint address: ${mint.publicKey}`);
 
-  const createdCollectionNft = await fetchDigitalAsset(umi, collectionMint.publicKey);
-  console.log(
-    `created collection! Address is ${getExplorerLink(
-      "address",
-      createdCollectionNft.mint.publicKey,
-      "devnet"
-    )}`
-  );
+  try {
+    const createdNft = await fetchDigitalAsset(umi, mint.publicKey);
+    console.log(`Successfully fetched NFT: ${createdNft.mint.publicKey}`);
+  } catch (error) {
+    console.error("Error fetching NFT:", error);
+    console.log("Check your NFT on Solana Explorer:", `https://explorer.solana.com/address/${mint.publicKey}?cluster=devnet`);
+  }
 }
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+main();
